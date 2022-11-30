@@ -1,35 +1,8 @@
-import tkinter as tk
 from random import shuffle
 from tkinter.messagebox import showinfo, showerror
-from tkinter import *
+import NewButton
 import time
-
-
-class Timer(Tk):
-    time_started = int(time.strftime("%s"))
-
-    def __init__(self):
-        super().__init__()
-        self.label = Label(self, text="timer", padx=60, pady=20)
-        self.label.pack()
-        self.update_clock()
-
-    def update_clock(self):
-        now = int(time.strftime("%s")) - self.time_started
-        self.label.configure(text=now)
-        self.after(1000, self.update_clock)
-
-
-class NewButton(tk.Button):
-
-    def __init__(self, master, x, y, number=0, *args, **kwargs):
-        super(NewButton, self).__init__(master, *args, **kwargs)
-        self.x = x
-        self.y = y
-        self.number = number
-        self.mine = False
-        self.neighbor = 0
-        self.opened = False
+import tkinter as tk
 
 
 class MineSweeper:
@@ -39,13 +12,21 @@ class MineSweeper:
     window = tk.Tk()
     GameOver = False
     count = 0
+    button_width = 5
+    button_height = 3
+    font = ("Aria 13", 13, "bold")
+    pad = 20
+    apply_row = 3
+    color = ''
+    time_started = int(time.strftime("%S"))
 
     def __init__(self):
         self.buttons = []
         for i in range(MineSweeper.lines + 2):
             line_now = []
             for j in range(MineSweeper.columns + 2):
-                button = NewButton(MineSweeper.window, x=i, y=j, number=0, width=5, height=3)
+                button = NewButton.NewButton(MineSweeper.window, x=i, y=j, number=0, width=self.button_width,
+                                             height=self.button_height)
                 button.config(command=lambda func=button: self.push(func))
                 button.bind('<Button-2>', self.flag)
                 button.bind('<Button-3>', self.flag)
@@ -53,7 +34,7 @@ class MineSweeper:
             self.buttons.append(line_now)
         MineSweeper.count = 0
 
-    def flag(self, event):
+    def flag(self, event):  # расставляем флажки
         now = event.widget
         if now['state'] == 'normal':
             now['state'] = 'disabled'
@@ -63,106 +44,85 @@ class MineSweeper:
             now['state'] = 'normal'
             now['text'] = ''
             MineSweeper.count -= 1
+        MineSweeper.congratulations(self)
+
+    def set_color(self, button_now: NewButton):  # присваиваем цвет цифре в зависимости от количества мин по соседству
+        if button_now.neighbor == 0:
+            self.color = '#F5F5F5'
+        if button_now.neighbor == 1:
+            self.color = 'blue'
+        if button_now.neighbor == 2:
+            self.color = 'green'
+        if button_now.neighbor == 3:
+            self.color = 'red'
+        if button_now.neighbor == 4:
+            self.color = 'darkblue'
+        if button_now.neighbor == 5:
+            self.color = 'brown'
+        if button_now.neighbor == 6:
+            self.color = 'aqua'
+        if button_now.neighbor == 7:
+            self.color = 'black'
+        if button_now.neighbor == 8:
+            self.color = '#778899'
+
+    def congratulations(self):  # проверка на конец игры + поздравление
         flag = True
         for i in range(1, MineSweeper.lines + 1):
             for j in range(1, MineSweeper.columns + 1):
                 if self.buttons[i][j]['state'] != 'disabled':
                     flag = False
         if MineSweeper.count == MineSweeper.mines and flag:
-            showinfo('win', 'Congrats!')
+            showinfo('win', f'Congrats!\n Your score: {int(time.strftime("%S")) - self.time_started} seconds')
+            self.time_started = int(time.strftime("%S"))
+
+    def show_mines(self):  # показываем, где находились мины, в случае если игра проиграна
+        for i in range(1, MineSweeper.lines + 1):
+            for j in range(1, MineSweeper.columns + 1):
+                if self.buttons[i][j].mine:
+                    self.buttons[i][j].config(text='💣', state='disabled')
+                else:
+                    self.buttons[i][j].config(state='disabled')
 
     def push(self, button_now: NewButton):  # обработка нажатий на кнопки
-        if button_now.neighbor == 0:
-            color = '#F5F5F5'
-        if button_now.neighbor == 1:
-            color = 'blue'
-        if button_now.neighbor == 2:
-            color = 'green'
-        if button_now.neighbor == 3:
-            color = 'red'
-        if button_now.neighbor == 4:
-            color = 'darkblue'
-        if button_now.neighbor == 5:
-            color = 'brown'
-        if button_now.neighbor == 6:
-            color = 'aqua'
-        if button_now.neighbor == 7:
-            color = 'black'
-        if button_now.neighbor == 8:
-            color = '#778899'
+        MineSweeper.set_color(self, button_now)
         if button_now.mine:
             button_now.config(text='💣', state='disabled')
             button_now.opened = True
             MineSweeper.GameOver = True
             showinfo('Game Over', 'GAME OVER')
-            Timer.time_started = int(time.strftime("%s"))
-            for i in range(1, MineSweeper.lines + 1):
-                for j in range(1, MineSweeper.columns + 1):
-                    if self.buttons[i][j].mine:
-                        self.buttons[i][j].config(text='💣', state='disabled')
-                    else:
-                        self.buttons[i][j].config(state='disabled')
+            self.time_started = int(time.strftime("%S"))
+            MineSweeper.show_mines(self)
         else:
-            button_now.config(text=button_now.neighbor, width=5, height=3, font=("Arial 13", 13, "bold"),
-                              disabledforeground=color, state='disabled')
+            button_now.config(text=button_now.neighbor, width=self.button_width, height=self.button_height,
+                              font=self.font, disabledforeground=self.color, state='disabled')
             button_now.opened = True
             if not button_now.neighbor:
                 self.search(button_now)
-        flag = True
-        for i in range(1, MineSweeper.lines + 1):
-            for j in range(1, MineSweeper.columns + 1):
-                if self.buttons[i][j]['state'] != 'disabled':
-                    flag = False
-        if MineSweeper.count == MineSweeper.mines and flag:
-            showinfo('win', 'Congrats!')
-            Timer.time_started = int(time.strftime("%s"))
+        MineSweeper.congratulations(self)
 
     def search(self, button: NewButton):  # Функция, раскрывающая поля без цифр и мин
         queue = [button]
         while queue:
             now = queue.pop()
             if now.neighbor:
-                if now.neighbor == 1:
-                    color = 'blue'
-                if now.neighbor == 2:
-                    color = 'green'
-                if now.neighbor == 3:
-                    color = 'red'
-                if now.neighbor == 4:
-                    color = 'darkblue'
-                if now.neighbor == 5:
-                    color = 'brown'
-                if now.neighbor == 6:
-                    color = 'aqua'
-                if now.neighbor == 7:
-                    color = 'black'
-                if now.neighbor == 8:
-                    color = '#778899'
-                now.config(text=now.neighbor, width=5, height=3, font=("Aria 13", 13, "bold"),
-                           disabledforeground=color, state='disabled')
-            else:
-                now.config(state='disabled')
+                MineSweeper.set_color(self, now)
+                now.config(text=now.neighbor, width=self.button_width, height=self.button_height, font=self.font,
+                           disabledforeground=self.color, state='disabled')
             now.config(state='disabled')
             now.opened = True
             if now.neighbor == 0:
-                x = now.x
-                y = now.y
-                up = self.buttons[x][y + 1]
-                down = self.buttons[x][y - 1]
-                left = self.buttons[x - 1][y]
-                right = self.buttons[x + 1][y]
-                diagonal1 = self.buttons[x + 1][y + 1]
-                diagonal2 = self.buttons[x - 1][y + 1]
-                diagonal3 = self.buttons[x + 1][y - 1]
-                diagonal4 = self.buttons[x - 1][y - 1]
-                ceils = [up, down, left, right, diagonal1, diagonal2, diagonal3, diagonal4]
+                x, y = now.x, now.y
+                ceils = [self.buttons[x][y + 1], self.buttons[x][y - 1], self.buttons[x - 1][y], self.buttons[x + 1][y],
+                         self.buttons[x + 1][y + 1], self.buttons[x + 1][y - 1], self.buttons[x - 1][y + 1],
+                         self.buttons[x - 1][y - 1]]
                 for ceil in ceils:
-                    if ceil.opened or (1 > ceil.x or ceil.x > MineSweeper.lines) or (
-                            1 > ceil.y or ceil.y > MineSweeper.columns) or ceil in queue:
+                    if ceil.opened or (1 > ceil.x or ceil.x > MineSweeper.lines) or \
+                            (1 > ceil.y or ceil.y > MineSweeper.columns) or ceil in queue:
                         continue
                     queue.append(ceil)
 
-    def restart(self):
+    def restart(self):  # перезапуск игры
         [child.destroy() for child in self.window.winfo_children()]
         self.__init__()
         self.start_game()
@@ -174,18 +134,18 @@ class MineSweeper:
         tk.Label(window_settings, text='LINES QUANTITY').grid(row=0, column=0)
         line_entry = tk.Entry(window_settings)
         line_entry.insert(0, str(MineSweeper.lines))
-        line_entry.grid(row=0, column=1, padx=20, pady=20)
+        line_entry.grid(row=0, column=1, padx=self.pad, pady=self.pad)
         tk.Label(window_settings, text='COLUMNS QUANTITY').grid(row=1, column=0)
         column_entry = tk.Entry(window_settings)
         column_entry.insert(0, str(MineSweeper.columns))
-        column_entry.grid(row=1, column=1, padx=20, pady=20)
+        column_entry.grid(row=1, column=1, padx=self.pad, pady=self.pad)
         tk.Label(window_settings, text='MINES QUANTITY').grid(row=2, column=0)
         mines_entry = tk.Entry(window_settings)
         mines_entry.insert(0, str(MineSweeper.mines))
-        mines_entry.grid(row=2, column=1, padx=20, pady=20)
+        mines_entry.grid(row=2, column=1, padx=self.pad, pady=self.pad)
         btn = tk.Button(window_settings, text='Apply',
                         command=lambda: self.change(line_entry, column_entry, mines_entry))
-        btn.grid(row=3, column=0, columnspan=2, padx=20, pady=20)
+        btn.grid(row=self.apply_row, column=0, columnspan=2, padx=self.pad, pady=self.pad)
 
     def change(self, line: tk.Entry, column: tk.Entry, mine: tk.Entry):  # хотим изменить параметры игры
         try:
@@ -199,7 +159,7 @@ class MineSweeper:
         self.restart()
 
     @staticmethod
-    def exit():
+    def exit():  # остановить программу, если нажали на file - exit
         exit(0)
 
     def make_table(self):  # Заполняем таблицу, добавляем меню
@@ -237,34 +197,20 @@ class MineSweeper:
                 button = self.buttons[i][j]
                 neighbor = 0
                 if not button.mine:
-                    if self.buttons[i - 1][j - 1].mine:
-                        neighbor += 1
-                    if self.buttons[i - 1][j].mine:
-                        neighbor += 1
-                    if self.buttons[i - 1][j + 1].mine:
-                        neighbor += 1
-                    if self.buttons[i][j - 1].mine:
-                        neighbor += 1
-                    if self.buttons[i][j + 1].mine:
-                        neighbor += 1
-                    if self.buttons[i + 1][j - 1].mine:
-                        neighbor += 1
-                    if self.buttons[i + 1][j].mine:
-                        neighbor += 1
-                    if self.buttons[i + 1][j + 1].mine:
-                        neighbor += 1
+                    neighbor += (bool(self.buttons[i - 1][j - 1].mine))
+                    neighbor += (bool(self.buttons[i - 1][j].mine))
+                    neighbor += (bool(self.buttons[i - 1][j + 1].mine))
+                    neighbor += (bool(self.buttons[i][j - 1].mine))
+                    neighbor += (bool(self.buttons[i][j + 1].mine))
+                    neighbor += (bool(self.buttons[i + 1][j - 1].mine))
+                    neighbor += (bool(self.buttons[i + 1][j].mine))
+                    neighbor += (bool(self.buttons[i + 1][j + 1].mine))
                 button.neighbor = neighbor
 
     def start_game(self):
-        Timer.time_started = int(time.strftime("%s"))
+        MineSweeper.time_started = int(time.strftime("%S"))
         MineSweeper.make_table(self)
         MineSweeper.insert(self)
         MineSweeper.count_neighbors(self)
         MineSweeper.window.mainloop()
         MineSweeper.count = 0
-
-
-app = Timer()
-app.title('Timer')
-game = MineSweeper()
-MineSweeper.start_game(game)
