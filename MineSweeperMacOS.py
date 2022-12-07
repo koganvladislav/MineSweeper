@@ -1,6 +1,8 @@
 from random import shuffle
 from tkinter.messagebox import showinfo, showerror
+import cv2
 import NewButton
+import pygame
 import time
 import tkinter as tk
 
@@ -19,6 +21,7 @@ class MineSweeper:
     apply_row = 3
     color = ''
     time_started = int(time.strftime("%s"))
+    pygame.init()
 
     def __init__(self):
         self.buttons = []
@@ -47,24 +50,9 @@ class MineSweeper:
         MineSweeper.congratulations(self)
 
     def set_color(self, button_now: NewButton):  # присваиваем цвет цифре в зависимости от количества мин по соседству
-        if button_now.neighbor == 0:
-            self.color = '#F5F5F5'
-        if button_now.neighbor == 1:
-            self.color = 'blue'
-        if button_now.neighbor == 2:
-            self.color = 'green'
-        if button_now.neighbor == 3:
-            self.color = 'red'
-        if button_now.neighbor == 4:
-            self.color = 'darkblue'
-        if button_now.neighbor == 5:
-            self.color = 'brown'
-        if button_now.neighbor == 6:
-            self.color = 'aqua'
-        if button_now.neighbor == 7:
-            self.color = 'black'
-        if button_now.neighbor == 8:
-            self.color = '#778899'
+        d = {0: '#F5F5F5', 1: 'blue', 2: 'green', 3: 'red',
+             4: 'darkblue', 5: 'brown', 6: 'aqua', 7: 'black', 8: '#778899'}
+        self.color = d[button_now.neighbor]
 
     def congratulations(self):  # проверка на конец игры + поздравление
         flag = True
@@ -73,6 +61,8 @@ class MineSweeper:
                 if self.buttons[i][j]['state'] != 'disabled':
                     flag = False
         if MineSweeper.count == MineSweeper.mines and flag:
+            pygame.mixer.music.load('music/game-won.mp3')
+            pygame.mixer.music.play(0)
             showinfo('win', f'Congrats!\n Your score: {int(time.strftime("%s")) - self.time_started} seconds')
             self.time_started = int(time.strftime("%s"))
 
@@ -87,6 +77,12 @@ class MineSweeper:
     def push(self, button_now: NewButton):  # обработка нажатий на кнопки
         MineSweeper.set_color(self, button_now)
         if button_now.mine:
+            pygame.mixer.music.load('music/game-lost.mp3')
+            pygame.mixer.music.play(0)
+            image = cv2.imread('hide_the_pain_harold.jpeg')
+            cv2.imshow("BRUH", image)
+            cv2.waitKey(2000)
+            cv2.destroyAllWindows()
             button_now.config(text='💣', state='disabled')
             button_now.opened = True
             MineSweeper.GameOver = True
@@ -129,6 +125,8 @@ class MineSweeper:
         MineSweeper.count = 0
 
     def settings(self):  # Меню
+        pygame.mixer.music.load('music/main-menu-2.mp3')
+        pygame.mixer.music.play(0)
         window_settings = tk.Toplevel(self.window)
         window_settings.wm_title('Settings')
         tk.Label(window_settings, text='LINES QUANTITY').grid(row=0, column=0)
@@ -160,6 +158,9 @@ class MineSweeper:
 
     @staticmethod
     def exit():  # остановить программу, если нажали на file - exit
+        pygame.mixer.music.load('music/opponent-goal.mp3')
+        pygame.mixer.music.play(0)
+        time.sleep(3)
         exit(0)
 
     def make_table(self):  # Заполняем таблицу, добавляем меню
@@ -169,7 +170,7 @@ class MineSweeper:
         settings = tk.Menu(menu)
         settings.add_command(label='Play', command=self.restart)
         settings.add_command(label='Settings', command=self.settings)
-        settings.add_command(label='Exit', command=exit)
+        settings.add_command(label='Exit', command=self.exit)
         menu.add_cascade(label='file', menu=settings)
         for i in range(1, MineSweeper.lines + 1):
             for j in range(1, MineSweeper.columns + 1):
@@ -208,9 +209,15 @@ class MineSweeper:
                 button.neighbor = neighbor
 
     def start_game(self):
-        MineSweeper.time_started = int(time.strftime("%s"))
+        MineSweeper.time_started = int(time.strftime("%s")) + 2
         MineSweeper.make_table(self)
         MineSweeper.insert(self)
         MineSweeper.count_neighbors(self)
+        pygame.mixer.music.load('music/Ok Lets Go - Meme.mp3')
+        pygame.mixer.music.play(0)
+        time.sleep(2)
+        pygame.mixer.music.set_volume(0.6)
+        pygame.mixer.music.load('music/Subway Surfers Theme Sound Effect.mp3')
+        pygame.mixer.music.play(-1)
         MineSweeper.window.mainloop()
         MineSweeper.count = 0
